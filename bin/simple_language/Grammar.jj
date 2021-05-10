@@ -1,0 +1,200 @@
+options {
+  STATIC = false;
+}
+
+PARSER_BEGIN(Grammer)
+package simple_language;
+
+import java.io.StringReader;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+public class Grammer {
+  	
+    public static void main(String[] args){
+      try {
+        new Grammer(new java.io.StringReader(args[0])).S();
+        System.out.println("Syntax checked");
+      }catch(Throwable  e) {
+        System.out.println("Syntax check failed");
+      }
+      
+    }
+    
+}
+
+
+PARSER_END(Grammer)
+
+SKIP:  { " " | "\t" | "\n" | "\r" }
+TOKEN: { <Digit: (["0"-"9"])+>
+| <Sign:("+" | "-") >
+| ":=" | ";" | "(" | ")" | "==" | "!" | "^"
+| "if" |"then"| "else" | "while" | "do" | "skip" }
+
+
+ java.util.HashMap<String, Integer> S():
+{
+  //create a global hash maps to store variables and their values
+  java.util.HashMap<String, Integer> varList = new java.util.HashMap<String, Integer>();
+  if(map!=null) { 
+  		varList=map;
+	}
+
+}
+{Com(varList,true)
+{
+return varList;
+}
+
+<EOF>
+}
+
+// to use a variable, we have to check if it already exists in varList first/
+int AExp(java.util.HashMap<String, Integer> varList,String variable,boolean flag):
+{
+  String var;int n1,n2; Token sign,num;
+}
+{ num=<Digit> {
+  	int val=Integer.parseInt(num.image);
+  	if(flag&&variable!=null) { 
+		varList.put(variable,val);
+	}
+  	return val;
+  	 }
+| var = Var()
+{
+	if(varList.get(var) == null) {
+		
+		return 0;
+	}else {
+	
+		return varList.get(var);
+	}
+	
+}
+| "(" n1=AExp(varList,variable,flag) sign=< Sign> n2=AExp(varList,variable,flag) ")"
+{
+  String s=sign.image;
+  int res=0;
+  if(s.equals("+")) {
+    res=n1+n2;
+  }
+  else {
+	res=n1-n2;
+  }
+  if(flag&&variable!=null) { 
+  	varList.put(variable,res);
+  }
+  return res;
+}
+
+
+}
+
+
+boolean BExp(java.util.HashMap<String, Integer> varList,boolean flag):
+{boolean b;}
+{
+  LOOKAHEAD(Bool()) b = Bool()
+  {
+
+    return b;
+  }
+  | "(" b = Exp1(varList,flag) ")"
+  {
+    return b;
+  }
+  | "!" b=BExp(varList,flag)
+  {
+  
+    return !b;
+  }
+}
+
+boolean Bool():
+{ Token x;}
+{
+  x = "ff"
+  {
+
+    return false;
+  }
+  | x = "tt"
+  {
+ 
+    return true;
+  }
+}
+
+String Var():
+{Token matchedTok;}
+{ matchedTok = < ("ff")+ ("a"|"b"|"c"|"d"|"e"|"f")+ >
+	{
+
+	  return matchedTok.image;
+	}
+| matchedTok = < ("a"|"b"|"c"|"d"|"e"|"f")+ ("ff")* ("a"|"b"|"c"|"d"|"e"|"f")* ("ff")* >
+	{
+
+	  return matchedTok.image;
+	}
+}
+
+boolean Exp1(java.util.HashMap<String, Integer> varList,boolean flag):
+{boolean b1, b2; int n1,n2;}
+{
+  LOOKAHEAD(AExp(varList,null,flag)"==" AExp(varList,null,flag)) n1=AExp(varList,null,flag) "==" n2=AExp(varList,null,flag)
+  {
+
+    // if equal return true else return false
+    return n1==n2;
+  }
+  |  b1 = BExp(varList,flag) "^" b2 = BExp(varList,flag)
+  {
+
+    return b1 && b2;
+  }
+}
+
+//hash map is passed as an argument to keep the same data structure for all variables/
+void Com(java.util.HashMap<String, Integer> varList,boolean flag):
+{
+  String var; //used to store variable name in case of assignment operations
+  int value = 0; //needs to be returned from AExp
+  boolean b; //used to store the value of if or while condition
+  Token x;
+}
+{ "skip" [";" Com(varList,flag)]
+	| LOOKAHEAD(Var()) var = Var()":=" AExp(varList,var,flag)[";" Com(varList,flag)]
+
+	| "if" b = BExp(varList,flag) "then" Com(varList,b&&flag) "else" Com(varList,!b && flag) [";" Com(varList,!b&&flag)]
+
+	|  "while" b=BExp(varList,flag) "do" Com(varList,b&flag) [";" Com(varList,b&flag)]
+	{
+	  //TODO
+		if(b&flag) { 
+            InputStream in;
+			try {
+			in = new ByteArrayInputStream(str.getBytes("UTF-8"));
+	        Grammer g= new Grammer(in);
+	        
+	        String exp=str.substring(str.indexOf("while"));
+	        int i=exp.indexOf("else");
+	        if(i==-1) { 
+	        g.str=exp;
+	        }
+	        else {
+	          g.str=exp.substring(0,i);
+	        }
+	        g.map=varList;
+	        g.S();
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+	  
+	}
+}

@@ -1,0 +1,48 @@
+options {
+  STATIC = false;
+}
+
+PARSER_BEGIN(BasicGrammar)
+package withoutEval;
+
+import java.io.StringReader;
+
+public class BasicGrammar {
+  
+    public static void main(String[] args){
+
+      
+    }
+    
+}
+
+
+PARSER_END(BasicGrammar)
+
+
+SKIP:  { " " | "\t" | "\n" | "\r" }
+TOKEN: { <Digit: (["0"-"9"])+>
+| <Sign:("+" | "-") >
+| ":=" | ";" | "(" | ")" | "==" | "!" | "^"
+| "if" |"then"| "else" | "while" | "do" | "skip" }
+
+
+
+
+void S(): {} {Com() <EOF> }
+
+
+void AExp(): {} { <Digit> | Var() | "(" AExp() < Sign> AExp() ")"  }
+
+
+void BExp(): {} { LOOKAHEAD(Bool()) Bool()  | "(" Exp1() ")" | "!" BExp()   }
+void Bool(): {} {"ff"|"tt" }
+void Var():  {} { ("ff")+ ("a"|"b"|"c"|"d"|"e"|"f")+ |
+("a"|"b"|"c"|"d"|"e"|"f")+ ("ff")* ("a"|"b"|"c"|"d"|"e"|"f")* ("ff")* }
+
+void Exp1(): { } { LOOKAHEAD(AExp()"==" AExp()) AExp() "==" AExp()   |  BExp() "^" BExp() }
+
+void Com(): {} { "skip" [";" Com()]| LOOKAHEAD(Var())Var()":=" AExp()[";" Com()]
+
+| "if" BExp() "then" Com() "else" Com() [";" Com()] 
+| "while" BExp() "do" Com() [";" Com()]     }
